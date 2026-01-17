@@ -94,12 +94,12 @@ class CatchupConfigManager:
     """配置管理类"""
 
     def __init__(self):
-        self.enabled: bool = False
-        self.owner_id: Optional[int] = None
+        self.enabled: bool = False  # 插件总开关，控制所有关键词是否生效
+        self.owner_id: Optional[int] = None  # 插件所有者ID，只有所有者可以管理配置
         self.keywords: Dict[str, Dict] = {}  # keyword -> {target_user_id, target_chat_id, rate_limit_seconds}
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         """从文件加载配置"""
         if config_file.exists():
             try:
@@ -111,11 +111,14 @@ class CatchupConfigManager:
                 logs.info(f"Catchup 配置已加载，共 {len(self.keywords)} 个关键词")
             except Exception as e:
                 logs.error(f"加载 Catchup 配置失败: {e}")
+                # 重置所有属性，避免数据不一致
+                self.enabled = False
+                self.owner_id = None
                 self.keywords = {}
         else:
             self.keywords = {}
 
-    def save(self):
+    def save(self) -> bool:
         """保存配置到文件"""
         try:
             with open(config_file, "w", encoding="utf-8") as f:
@@ -125,11 +128,19 @@ class CatchupConfigManager:
                     "keywords": self.keywords,
                 }, f, indent=4, ensure_ascii=False)
             logs.info("Catchup 配置已保存")
+            return True
         except Exception as e:
             logs.error(f"保存 Catchup 配置失败: {e}")
+            return False
 
-    def add_keyword(self, keyword: str, target_user_id: int, target_chat_id: int, rate_limit: int = DEFAULT_RATE_LIMIT):
+    def add_keyword(self, keyword: str, target_user_id: int, target_chat_id: int, rate_limit: int = DEFAULT_RATE_LIMIT) -> str:
         """添加或更新关键词配置"""
+        # 参数验证
+        if not keyword or not keyword.strip():
+            return "关键词不能为空"
+        if rate_limit < 0:
+            return "频率限制必须大于等于0"
+
         self.keywords[keyword] = {
             "target_user_id": target_user_id,
             "target_chat_id": target_chat_id,
