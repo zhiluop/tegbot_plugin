@@ -37,21 +37,42 @@ async def plugin_shutdown():
     logs.info("Catchup 插件已卸载")
 
 
-# 模板数据
+# 模板数据（来自 sao_nkr 发癫文案）
 TEMPLATES_DATA = {
     "templates": [
-        # 单人模板
-        {"id": 1, "mode": "single", "content": "{name} 正在看着你"},
-        {"id": 2, "mode": "single", "content": "{name} 收到了一条神秘消息"},
-        {"id": 3, "mode": "single", "content": "有人在呼唤 {name}"},
-        {"id": 4, "mode": "single", "content": "{name} 的名字被提及了"},
-        {"id": 5, "mode": "single", "content": "{name} 突然感觉背后一凉"},
-        # 双人模板
-        {"id": 101, "mode": "dual", "content": "{trigger_user} 向 {target_user} 发送了信号"},
-        {"id": 102, "mode": "dual", "content": "{trigger_user} 正在寻找 {target_user}"},
-        {"id": 103, "mode": "dual", "content": "{target_user} 收到 {trigger_user} 的消息"},
-        {"id": 104, "mode": "dual", "content": "{trigger_user} 呼唤了 {target_user}"},
-        {"id": 105, "mode": "dual", "content": "{trigger_user} 对 {target_user} 说：在吗"},
+        # 单人模板（16条）
+        {"id": 1, "mode": "single", "content": "大家能教教{name} 怎么骂人喵\n\n每次骂人{name} 都觉得不好意思\n\n捏紧了拳头👊\n\n憋红了脸😳\n\n最后只能小声地说一句\n\n你坏死了喵😻"},
+        {"id": 2, "mode": "single", "content": "旁人说话是说话，\n{name} 听话，却先动了心思。"},
+        {"id": 3, "mode": "single", "content": "好好一句正经话，\n到了 {name} 那里，\n便拐了两个弯。"},
+        {"id": 4, "mode": "single", "content": "脸上装得端正，\n心里早已另起炉灶——\n这炉灶，姓 {name}。"},
+        {"id": 5, "mode": "single", "content": "别人看人看脸，\n{name} 看人——\n先看有没有下文。"},
+        {"id": 6, "mode": "single", "content": "话还没暖，\n{name} 已经嫌冷，\n非要添点火气。"},
+        {"id": 7, "mode": "single", "content": "世上暧昧本无声，\n都是 {name}\n替它敲锣打鼓。"},
+        {"id": 8, "mode": "single", "content": "旁人尚在犹豫，\n{name} 已把分寸\n悄悄挪走半步。"},
+        {"id": 9, "mode": "single", "content": "嘴上说得清白，\n眼里却藏着算盘；\n那算盘，拨得最响的\n还是 {name}。"},
+        {"id": 10, "mode": "single", "content": "本是闲话家常，\n{name} 听着听着，\n便开始琢磨去处。"},
+        {"id": 11, "mode": "single", "content": "风月二字未提，\n{name} 已先自觉对号入座。"},
+        {"id": 12, "mode": "single", "content": "旁人怕越界，\n{name}\n只嫌界线画得不够近。"},
+        {"id": 13, "mode": "single", "content": "人前一副正经样，\n人后全是心眼子；\n心眼子里，\n又全是 {name} 的主意。"},
+        {"id": 14, "mode": "single", "content": "夜色本来无事，\n偏让 {name}\n想出了故事。"},
+        {"id": 15, "mode": "single", "content": "别人见好就收，\n{name} 见好——\n想再看两眼。"},
+        {"id": 16, "mode": "single", "content": "若说风流是罪，\n那 {name}\n最多算个惯犯未遂。"},
+        # 双人模板（15条）
+        {"id": 101, "mode": "dual", "content": "世人说话平平，只有 {name} 一边摇头，一边偷偷瞄 {target}。"},
+        {"id": 102, "mode": "dual", "content": "本是清闲茶话，偏 {name} 与 {target} 心思一动，便生了几分风月。"},
+        {"id": 103, "mode": "dual", "content": "旁人尚能稳坐，{name} 与 {target} 却早在暗处较了三分心机。"},
+        {"id": 104, "mode": "dual", "content": "话未出口，眼已传情；\n若问谁最忙，正是 {name} 看 {target}，{target} 知 {name}。"},
+        {"id": 105, "mode": "dual", "content": "人前 {name} 言辞端正，{target} 神色从容；\n人后看官便知，两人心里都偷了算盘。"},
+        {"id": 106, "mode": "dual", "content": "风月二字未提，{name} 已想对 {target} 说话；\n月色无声，{target} 已在心里答应。"},
+        {"id": 107, "mode": "dual", "content": "别人夜深闭户，{name} 与 {target} 却各自演了一出暗中较劲，还互不知晓。"},
+        {"id": 108, "mode": "dual", "content": "话本无心，{name} 与 {target} 却总能拐出几步妙计，旁人看了也只能笑叹。"},
+        {"id": 109, "mode": "dual", "content": "若说暧昧为罪，{name} 与 {target}\n一个主动，一个不甘示弱，算是同业未遂。"},
+        {"id": 110, "mode": "dual", "content": "世上众人皆淡，{name} 与 {target} 便偏要热闹，\n谁说风月只有一人忙？"},
+        {"id": 111, "mode": "dual", "content": "端坐如君子，心里却已比试；\n这场静坐大战，{name} 与 {target} 各占半招。"},
+        {"id": 112, "mode": "dual", "content": "旁人尚在清梦，{name} 已偷偷看向 {target}，\n{target} 回眼一笑，连风都替两人作证。"},
+        {"id": 113, "mode": "dual", "content": "话未多，心已乱；\n{name} 与 {target} 心照不宣，旁人只道他们在寒暄。"},
+        {"id": 114, "mode": "dual", "content": "若问谁最会看人，{name} 与 {target} 都不落下风；\n只不过，一个暗笑，一个回眸，便各自得意。"},
+        {"id": 115, "mode": "dual", "content": "一场茶话，人前正经，人后暗生风月；\n若问始作俑者，{name} 与 {target} 分庭抗礼。"},
     ]
 }
 
@@ -81,11 +102,11 @@ class TemplateGenerator:
         return template.replace("{name}", name).replace("{target_user}", name)
 
     def generate_dual(self, trigger_user: str, target_user: str) -> str:
-        """生成双人回复"""
+        """生成双人回复（使用 {name} 和 {target} 占位符）"""
         if not self.dual_templates:
             return f"{trigger_user} 向 {target_user} 发送了消息"
         template = random.choice(self.dual_templates)
-        return template.replace("{trigger_user}", trigger_user).replace("{target_user}", target_user)
+        return template.replace("{name}", trigger_user).replace("{target}", target_user)
 
 
 class CatchupConfigManager:
