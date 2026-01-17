@@ -456,36 +456,43 @@ async def trigger_catchup(message: Message, bot: Client):
     if not text.startswith('/'):
         return
 
-    # 检查功能是否开启
-    if not config_manager.enabled:
-        return
-
     # 提取关键词（去掉开头的 /）
     keyword = text[1:].strip()
     if not keyword:
         return
 
+    logs.info(f"[Catchup] 收到 /{keyword} 命令，群组ID: {message.chat.id}")
+
+    # 检查功能是否开启
+    if not config_manager.enabled:
+        logs.info(f"[Catchup] 功能未开启")
+        return
+
     # 检查关键词配置是否存在
     keyword_config = config_manager.get_keyword_config(keyword)
     if not keyword_config:
+        logs.info(f"[Catchup] 关键词 `{keyword}` 配置不存在")
         return
 
     # 检查是否在目标群组
     if message.chat.id != keyword_config["target_chat_id"]:
+        logs.info(f"[Catchup] 群组ID不匹配: 当前{message.chat.id} != 配置{keyword_config['target_chat_id']}")
         return
 
     # 获取触发用户ID
     trigger_user_id = message.from_user.id if message.from_user else None
     if not trigger_user_id:
+        logs.info(f"[Catchup] 无法获取触发用户ID")
         return
 
     # 检查是否是主人
     is_owner = (trigger_user_id == config_manager.owner_id) if config_manager.owner_id else False
+    logs.info(f"[Catchup] 触发用户: {trigger_user_id}, 是主人: {is_owner}")
 
     # 检查频率限制
     can_trigger, wait_time = trigger_log.can_trigger(keyword, is_owner)
     if not can_trigger:
-        logs.info(f"关键词 `{keyword}` 触发过于频繁，需等待 {wait_time} 秒")
+        logs.info(f"[Catchup] 关键词 `{keyword}` 触发过于频繁，需等待 {wait_time} 秒")
         return
 
     # 获取触发用户信息
@@ -501,7 +508,7 @@ async def trigger_catchup(message: Message, bot: Client):
             target_name = target_message.from_user.username or target_message.from_user.first_name or str(target_message.from_user.id)
             reply_text = template_generator.generate_dual(trigger_name, target_name)
             await target_message.reply(reply_text)
-            logs.info(f"关键词 `{keyword}` 已触发，回复用户 {keyword_config['target_user_id']}")
+            logs.info(f"[Catchup] 关键词 `{keyword}` 已触发，回复用户 {keyword_config['target_user_id']}")
 
             # 记录触发时间
             trigger_log.record_trigger(keyword)
@@ -510,4 +517,4 @@ async def trigger_catchup(message: Message, bot: Client):
             with contextlib.suppress(Exception):
                 await message.delete()
         else:
-            logs.info(f"未找到用户 {keyword_config['target_user_id']} 的最近发言")
+            logs.info(f"[Catchup] 未找到用户 {keyword_config['target_user_id']} 的最近发言")
