@@ -270,6 +270,19 @@ async def catchup_command(message: Message):
         await show_help(message)
 
 
+def check_permission(message: Message) -> bool:
+    """
+    检查消息发送者是否有权限执行管理命令
+    主人可以执行所有命令
+    如果未设置主人ID，则允许任何人执行（用于首次配置）
+    """
+    if config_manager.owner_id is None:
+        # 未设置主人，允许任何人操作（用于首次配置）
+        return True
+
+    return message.from_user.id == config_manager.owner_id
+
+
 async def show_help(message: Message):
     """显示帮助信息"""
     help_text = """**Catchup 插件使用说明:**
@@ -293,16 +306,25 @@ async def show_help(message: Message):
 
 async def enable_feature(message: Message):
     """开启全局功能"""
-    if not config_manager.keywords:
-        await message.edit("❌ 请先添加关键词配置！\\n使用 `,catchup set <关键词> <用户ID> <群组ID>`")
+    if not check_permission(message):
+        await message.edit("❌ 权限不足！只有主人可以执行此操作")
         return
+
     config_manager.enabled = True
     config_manager.save()
-    await message.edit(f"✅ Catchup 功能已开启\\n已配置 {len(config_manager.keywords)} 个关键词")
+
+    if not config_manager.keywords:
+        await message.edit("⚠️ Catchup 功能已开启，但尚未配置关键词\n使用 `,catchup set <关键词> <用户ID> <群组ID>` 添加配置")
+    else:
+        await message.edit(f"✅ Catchup 功能已开启\n已配置 {len(config_manager.keywords)} 个关键词")
 
 
 async def disable_feature(message: Message):
     """关闭全局功能"""
+    if not check_permission(message):
+        await message.edit("❌ 权限不足！只有主人可以执行此操作")
+        return
+
     config_manager.enabled = False
     config_manager.save()
     await message.edit("❌ Catchup 功能已关闭")
@@ -310,9 +332,13 @@ async def disable_feature(message: Message):
 
 async def set_keyword(message: Message):
     """设置关键词配置"""
+    if not check_permission(message):
+        await message.edit("❌ 权限不足！只有主人可以执行此操作")
+        return
+
     params = message.arguments.split()
     if len(params) < 4:
-        await message.edit("❌ 参数错误！\\n使用 `,catchup set <关键词> <用户ID> <群组ID> [秒数]`")
+        await message.edit("❌ 参数错误！\n使用 `,catchup set <关键词> <用户ID> <群组ID> [秒数]`")
         return
 
     try:
@@ -322,16 +348,20 @@ async def set_keyword(message: Message):
         rate_limit = int(params[4]) if len(params) > 4 else DEFAULT_RATE_LIMIT
 
         msg = config_manager.add_keyword(keyword, user_id, chat_id, rate_limit)
-        await message.edit(f"✅ {msg}\\n用户ID: `{user_id}`\\n群组ID: `{chat_id}`\\n频率限制: {rate_limit}秒")
+        await message.edit(f"✅ {msg}\n用户ID: `{user_id}`\n群组ID: `{chat_id}`\n频率限制: {rate_limit}秒")
     except ValueError:
         await message.edit("❌ ID格式错误！请输入有效的数字ID")
 
 
 async def delete_keyword(message: Message):
     """删除关键词配置"""
+    if not check_permission(message):
+        await message.edit("❌ 权限不足！只有主人可以执行此操作")
+        return
+
     params = message.arguments.split()
     if len(params) < 2:
-        await message.edit("❌ 参数错误！\\n使用 `,catchup delete <关键词>`")
+        await message.edit("❌ 参数错误！\n使用 `,catchup delete <关键词>`")
         return
 
     keyword = params[1]
@@ -349,9 +379,14 @@ async def list_keywords(message: Message):
 
 async def set_owner(message: Message):
     """设置主人ID"""
+    # 特殊处理：如果未设置主人ID，则允许任何人设置
+    if config_manager.owner_id is not None and not check_permission(message):
+        await message.edit("❌ 权限不足！只有主人可以执行此操作")
+        return
+
     params = message.arguments.split()
     if len(params) < 2:
-        await message.edit("❌ 参数错误！\\n使用 `,catchup owner <用户ID>`")
+        await message.edit("❌ 参数错误！\n使用 `,catchup owner <用户ID>`")
         return
 
     try:
