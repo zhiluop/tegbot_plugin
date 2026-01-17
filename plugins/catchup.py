@@ -171,5 +171,68 @@ class CatchupConfigManager:
         return "\n".join(lines)
 
 
+class TriggerLogManager:
+    """触发记录管理类"""
+
+    def __init__(self):
+        self.logs: Dict[str, float] = {}  # keyword -> last_trigger_time
+        self.load()
+
+    def load(self) -> None:
+        """从文件加载触发记录"""
+        if trigger_log_file.exists():
+            try:
+                with open(trigger_log_file, "r", encoding="utf-8") as f:
+                    self.logs = json.load(f)
+                logs.info(f"触发记录已加载，共 {len(self.logs)} 条")
+            except Exception as e:
+                logs.error(f"加载触发记录失败: {e}")
+                self.logs = {}
+        else:
+            self.logs = {}
+
+    def save(self) -> None:
+        """保存触发记录到文件"""
+        try:
+            with open(trigger_log_file, "w", encoding="utf-8") as f:
+                json.dump(self.logs, f, indent=4)
+        except Exception as e:
+            logs.error(f"保存触发记录失败: {e}")
+
+    def can_trigger(self, keyword: str, is_owner: bool) -> tuple[bool, Optional[int]]:
+        """
+        检查关键词是否可以触发
+        返回: (是否可以触发, 需要等待的秒数)
+        """
+        # 主人无限制
+        if is_owner:
+            return True, None
+
+        # 检查频率限制
+        if keyword in self.logs:
+            last_time = self.logs[keyword]
+            elapsed = time.time() - last_time
+            keyword_config = config_manager.get_keyword_config(keyword)
+            if keyword_config:
+                rate_limit = keyword_config.get("rate_limit_seconds", DEFAULT_RATE_LIMIT)
+                if elapsed < rate_limit:
+                    wait_time = int(rate_limit - elapsed)
+                    return False, wait_time
+
+        return True, None
+
+    def record_trigger(self, keyword: str) -> None:
+        """记录关键词触发时间"""
+        self.logs[keyword] = time.time()
+        self.save()
+
+    def clear_keyword(self, keyword: str) -> None:
+        """清除关键词的触发记录"""
+        if keyword in self.logs:
+            del self.logs[keyword]
+            self.save()
+
+
 # 全局实例
 config_manager = CatchupConfigManager()
+trigger_log = TriggerLogManager()
