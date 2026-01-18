@@ -11,8 +11,7 @@
 | 插件 | 说明 | 文档 |
 |------|------|------|
 | CAI | 自动点踩插件 - 自动对目标用户的发言进行点踩 | [docs/cai.md](docs/cai.md) |
-| JPM | 金瓶梅语录插件 - 关键词触发金瓶梅语录 | [docs/jpm.md](docs/jpm.md) |
-| SAO NKR | 骚话生成器 - 基于关键词自动生成骚话回复 | [docs/sao_nkr.md](docs/sao_nkr.md) |
+| JPM | 关键词触发回复插件 - 支持多关键词、频率限制、锚点消息系统 | [docs/jpm.md](docs/jpm.md) |
 
 ## 安装
 
@@ -26,8 +25,13 @@
 tegbot_plugin/
 ├── plugins/           # 插件目录
 ├── docs/             # 插件文档
+├── .vps/             # VPS 部署脚本
 └── README.md         # 本文件
 ```
+
+## 开发说明
+
+本项目遵循严格的开发流程，详见 [`.claude/CLAUDE.md`](.claude/CLAUDE.md)。
 
 ## 许可证
 
