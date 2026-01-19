@@ -13,7 +13,7 @@
 在 PagerMaid-Pyro 中添加插件源：
 
 ```
-,apt_source add https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main
+,apt_source add https://raw.githubusercontent.com/zhiluop/tegbot_plugin/main
 ```
 
 安装插件：
@@ -37,12 +37,12 @@
 
 ## 插件列表
 
-| 插件 | 说明 | 文档 |
-|------|------|------|
-| CAI | 自动点踩插件 - 自动对目标用户的发言进行点踩 | [docs/cai.md](docs/cai.md) |
-| JPM | 关键词触发回复插件 - 支持多关键词、频率限制、锚点消息系统 | [docs/jpm.md](docs/jpm.md) |
-| Get Reactions | 表情获取辅助命令 - 用于测试环境是否支持自定义表情反应 | - |
-| Share Plugins | 分享插件 - 将插件以文件形式分享，支持列表查看和序号选择 | [docs/share_plugins.md](docs/share_plugins.md) |
+| 插件 | 说明 |
+|------|------|
+| CAI | 自动点踩插件 - 自动对目标用户的发言进行点踩 |
+| JPM | 关键词触发回复插件 - 支持多关键词、频率限制、锚点消息系统 |
+| Get Reactions | 表情获取辅助命令 - 用于测试环境是否支持自定义表情反应 |
+| Share Plugins | 分享插件 - 将插件以文件形式分享，支持列表查看和序号选择 |
 
 ## 项目结构
 
@@ -62,31 +62,10 @@ tegbot_plugin/
 │   └── DES.md              # 插件描述
 ├── list.json               # 插件列表（apt_source 使用）
 ├── index.html              # 插件展示页面
-├── docs/                   # 插件详细文档
-├── .vps/                   # VPS 部署脚本
+├── scripts/                # 维护脚本
+│   └── update_list.py      # 自动更新插件列表
 └── README.md               # 本文件
 ```
-
-## VPS 部署
-
-如果你需要在 VPS 上快速部署插件，可以使用提供的部署脚本：
-
-```bash
-# 安装依赖
-pip install paramiko
-
-# 配置 VPS 信息
-cp .vps/config.example.json .vps_config.json
-# 编辑 .vps_config.json 填写 VPS 信息
-
-# 上传所有插件
-python .vps/deploy.py
-
-# 上传指定插件
-python .vps/deploy.py jpm
-```
-
-详细说明请参考 [`.vps/README.md`](.vps/README.md)。
 
 ## 开发说明
 
@@ -97,8 +76,7 @@ python .vps/deploy.py jpm
 1. 创建插件文件夹：`mkdir your_plugin`
 2. 创建 `main.py` 文件：插件主代码
 3. 创建 `DES.md` 文件：插件简短描述
-4. 更新 `list.json`：添加插件信息
-5. 运行 `scripts/update_list.py`：自动更新插件列表
+4. 运行 `python scripts/update_list.py`：自动更新插件列表
 
 ## 许可证
 
