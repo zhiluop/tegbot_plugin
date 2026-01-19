@@ -9,11 +9,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# VPS deployment config (contains sensitive credentials)
+# VPS deployment (local use only)
+.vps/
 .vps_config.json
-!.vps/deploy.py
-!.vps/config.example.json
-!.vps/README.md
 
 # Temporary files
 nul
