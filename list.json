@@ -31,6 +31,16 @@
             "des": "关键词触发回复插件，支持多关键词、频率限制、锚点消息系统"
         },
         {
+            "name": "jpmai",
+            "version": "1.0.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "27.367 kb",
+            "supported": true,
+            "des_short": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限...",
+            "des": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限制、锚点消息系统"
+        },
+        {
             "name": "share_plugins",
             "version": "1.0.0",
             "section": "chat",
