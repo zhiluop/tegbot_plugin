@@ -4,6 +4,7 @@ JPMAI 插件 - AI 生成艳情文案回复
 基于 jpm 插件升级，调用 AI 模型实时生成仿明清艳情小说风格的文案
 """
 
+import asyncio
 import contextlib
 import json
 import time
@@ -493,11 +494,22 @@ trigger_log = TriggerLogManager()
 )
 async def jpmai_command(message: Message):
     """处理 jpmai 管理命令"""
-    if not message.arguments:
+    # 获取命令参数
+    text = message.arguments or ""
+
+    # 如果没有参数，返回提示信息并在3秒后撤回
+    if not text or text.strip() == "":
+        await message.edit("请输入文本")
+        await asyncio.sleep(3)
+        await message.delete()
+        return
+
+    # 检查是否是帮助命令
+    if text.strip().lower() == "help":
         await show_help(message)
         return
 
-    params = message.arguments.lower().split()
+    params = text.lower().split()
     cmd = params[0]
 
     # 处理关键词开关命令: ,jpmai <关键词> on/off

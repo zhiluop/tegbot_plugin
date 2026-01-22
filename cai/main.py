@@ -4,6 +4,7 @@
 文件名: cai.py
 """
 
+import asyncio
 import json
 import time
 from pathlib import Path
@@ -18,6 +19,7 @@ from pagermaid.utils import logs
 # 尝试导入自定义表情类型
 try:
     from pyrogram.types import ReactionTypeEmoji, ReactionTypeCustomEmoji
+
     HAS_CUSTOM_EMOJI = True
 except ImportError:
     HAS_CUSTOM_EMOJI = False
@@ -49,7 +51,9 @@ class CAIConfig:
                     self.emoji = data.get("emoji", "👎")
                     self.targets = data.get("targets", [])
                     self.stats = data.get("stats", {"total_reacts": 0})
-                logs.info(f"[CAI] 配置已加载，共 {len(self.targets)} 个目标，总点踩 {self.stats['total_reacts']} 次")
+                logs.info(
+                    f"[CAI] 配置已加载，共 {len(self.targets)} 个目标，总点踩 {self.stats['total_reacts']} 次"
+                )
             except Exception as e:
                 logs.error(f"[CAI] 加载配置失败: {e}")
                 self.enabled = False
@@ -64,12 +68,17 @@ class CAIConfig:
         """保存配置到文件"""
         try:
             with open(config_file, "w", encoding="utf-8") as f:
-                json.dump({
-                    "enabled": self.enabled,
-                    "emoji": self.emoji,
-                    "targets": self.targets,
-                    "stats": self.stats,
-                }, f, indent=4, ensure_ascii=False)
+                json.dump(
+                    {
+                        "enabled": self.enabled,
+                        "emoji": self.emoji,
+                        "targets": self.targets,
+                        "stats": self.stats,
+                    },
+                    f,
+                    indent=4,
+                    ensure_ascii=False,
+                )
             return True
         except Exception as e:
             logs.error(f"[CAI] 保存配置失败: {e}")
@@ -87,12 +96,14 @@ class CAIConfig:
                 return f"✅ 已更新配置 #{i + 1}"
 
         # 添加新配置
-        self.targets.append({
-            "user_id": user_id,
-            "chat_id": chat_id,
-            "rate_limit": rate_limit,
-            "last_react_time": 0
-        })
+        self.targets.append(
+            {
+                "user_id": user_id,
+                "chat_id": chat_id,
+                "rate_limit": rate_limit,
+                "last_react_time": 0,
+            }
+        )
         self.save()
         return f"✅ 已添加配置 #{len(self.targets)}"
 
@@ -192,6 +203,7 @@ def get_reaction(emoji: str) -> Union[str, list]:
 
 # ==================== 生命周期钩子 ====================
 
+
 @Hook.on_startup()
 async def cai_startup():
     """插件启动时执行"""
@@ -206,6 +218,7 @@ async def cai_shutdown():
 
 # ==================== 管理命令 ====================
 
+
 @listener(
     command="cai",
     description="自动点踩管理命令",
@@ -214,7 +227,128 @@ async def cai_shutdown():
 )
 async def cai_command(message: Message):
     """处理 CAI 管理命令"""
-    if not message.arguments:
+    # 获取命令参数
+    text = message.arguments or ""
+
+    # 如果没有参数，返回提示信息并在3秒后撤回
+    if not text or text.strip() == "":
+        await message.edit("请输入文本")
+        await asyncio.sleep(3)
+        await message.delete()
+        return
+
+    # 检查是否是帮助命令
+    if text.strip().lower() == "help":
+        await show_help(message)
+        return
+
+    cmd = text.lower().split()[0]
+
+    # 启用功能
+    if cmd == "on":
+        config.enabled = True
+        config.save()
+        await message.edit("✅ **自动点踩功能已开启**\n\n已开始监听目标用户的发言")
+
+    # 禁用功能
+    elif cmd == "off":
+        config.enabled = False
+        config.save()
+        await message.edit("❌ **自动点踩功能已关闭**")
+
+    # 添加配置
+    elif cmd == "set":
+        params = text.split()
+        if len(params) < 4:
+            await message.edit(
+                "❌ **参数错误！**\n\n"
+                "使用方法: `,cai set <用户ID> <群组ID> <频率(秒)>`\n\n"
+                "示例: `,cai set 123456789 -1001234567890 3600`"
+            )
+            return
+
+        try:
+            user_id = int(params[1])
+            chat_id = int(params[2])
+            rate_limit = int(params[3])
+
+            if rate_limit < 60:
+                await message.edit("❌ **频率限制不能小于 60 秒**")
+                return
+
+            result = config.add_target(user_id, chat_id, rate_limit)
+            rate_limit_minutes = rate_limit // 60
+            await message.edit(
+                f"{result}\n\n"
+                f"用户ID: `{user_id}`\n"
+                f"群组ID: `{chat_id}`\n"
+                f"频率限制: {rate_limit_minutes} 分钟"
+            )
+        except ValueError:
+            await message.edit("❌ **ID格式错误！**\n\n请输入有效的数字ID")
+
+    # 删除配置
+    elif cmd == "remove":
+        params = text.split()
+        if len(params) < 2:
+            await message.edit(
+                "❌ **参数错误！**\n\n使用方法: `,cai remove <序号>`\n\n示例: `,cai remove 1`"
+            )
+            return
+
+        try:
+            index = int(params[1])
+            result = config.remove_target(index)
+            await message.edit(result)
+        except ValueError:
+            await message.edit("❌ **序号格式错误！**\n\n请输入有效的数字序号")
+
+    # 查看配置
+    elif cmd == "list":
+        await message.edit(config.list_targets())
+
+    # 设置表情
+    elif cmd == "emoji":
+        params = text.split(maxsplit=1)
+        if len(params) < 2:
+            support_info = ""
+            if HAS_CUSTOM_EMOJI:
+                support_info = "\n**支持自定义表情：** ✅ 是\n   使用 `,get_reactions` 获取自定义表情ID\n"
+            await message.edit(
+                "❌ **参数错误！**\n\n"
+                "使用方法: `,cai emoji <表情>`\n\n"
+                "示例:\n"
+                " ` ,cai emoji 👎`  - 标准表情\n"
+                f" ` ,cai emoji 5352930934257484526`  - 自定义表情ID{support_info}\n"
+                "**提示：** 自定义表情ID是纯数字"
+            )
+            return
+
+        emoji = params[1].strip()
+        config.emoji = emoji
+        config.save()
+
+        # 判断表情类型
+        if emoji.isdigit():
+            emoji_type = "自定义表情ID"
+        else:
+            emoji_type = "标准表情"
+
+        support_status = (
+            "✅ 支持自定义表情" if HAS_CUSTOM_EMOJI else "❌ 不支持自定义表情"
+        )
+        await message.edit(
+            f"✅ **点踩表情已设置**\n\n"
+            f"当前表情: `{emoji}`\n"
+            f"表情类型: {emoji_type}\n"
+            f"环境支持: {support_status}"
+        )
+
+    # 统计信息
+    elif cmd == "stats":
+        await message.edit(config.get_stats())
+
+    else:
         await show_help(message)
         return
 
@@ -267,7 +401,9 @@ async def cai_command(message: Message):
     elif cmd == "remove":
         params = message.arguments.split()
         if len(params) < 2:
-            await message.edit("❌ **参数错误！**\n\n使用方法: `,cai remove <序号>`\n\n示例: `,cai remove 1`")
+            await message.edit(
+                "❌ **参数错误！**\n\n使用方法: `,cai remove <序号>`\n\n示例: `,cai remove 1`"
+            )
             return
 
         try:
@@ -308,7 +444,9 @@ async def cai_command(message: Message):
         else:
             emoji_type = "标准表情"
 
-        support_status = "✅ 支持自定义表情" if HAS_CUSTOM_EMOJI else "❌ 不支持自定义表情"
+        support_status = (
+            "✅ 支持自定义表情" if HAS_CUSTOM_EMOJI else "❌ 不支持自定义表情"
+        )
         await message.edit(
             f"✅ **点踩表情已设置**\n\n"
             f"当前表情: `{emoji}`\n"
@@ -365,6 +503,7 @@ async def show_help(message: Message):
 
 # ==================== 自动点踩监听器 ====================
 
+
 @listener(is_plugin=True, incoming=True, outgoing=True, ignore_edited=True)
 async def auto_react_handler(message: Message, bot):
     """
@@ -402,23 +541,33 @@ async def auto_react_handler(message: Message, bot):
         config.update_last_react(message.from_user.id, message.chat.id)
 
         # 获取用户信息用于日志
-        user_name = message.from_user.username or message.from_user.first_name or str(message.from_user.id)
-        logs.info(f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩")
+        user_name = (
+            message.from_user.username
+            or message.from_user.first_name
+            or str(message.from_user.id)
+        )
+        logs.info(
+            f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩"
+        )
 
     except AttributeError:
         # 如果 react 方法不存在，尝试使用 send_reaction
         try:
             await bot.send_reaction(
-                chat_id=message.chat.id,
-                message_id=message.id,
-                emoji=config.emoji
+                chat_id=message.chat.id, message_id=message.id, emoji=config.emoji
             )
 
             # 更新最后点踩时间
             config.update_last_react(message.from_user.id, message.chat.id)
 
-            user_name = message.from_user.username or message.from_user.first_name or str(message.from_user.id)
-            logs.info(f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩")
+            user_name = (
+                message.from_user.username
+                or message.from_user.first_name
+                or str(message.from_user.id)
+            )
+            logs.info(
+                f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩"
+            )
 
         except Exception as e:
             logs.error(f"[CAI] 点踩失败: {e}")
