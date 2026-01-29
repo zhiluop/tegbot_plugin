@@ -36,7 +36,8 @@ class CAIConfig:
 
     def __init__(self):
         self.enabled: bool = False
-        self.emoji: str = "👎"  # 默认点踩表情
+        self.emojis: List[str] = ["👎"]  # 默认点踩表情列表
+        self.is_premium: bool = False  # 是否为 Telegram Premium 会员
         self.targets: List[Dict] = []  # 目标列表
         self.stats: Dict = {"total_reacts": 0}  # 统计信息
         self.load()
@@ -48,7 +49,14 @@ class CAIConfig:
                 with open(config_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self.enabled = data.get("enabled", False)
-                    self.emoji = data.get("emoji", "👎")
+                    self.is_premium = data.get("is_premium", False)
+
+                    # 兼容旧配置：如果只有一个 emoji 字符串，转换为列表
+                    if "emoji" in data and "emojis" not in data:
+                        self.emojis = [data.get("emoji", "👎")]
+                    else:
+                        self.emojis = data.get("emojis", ["👎"])
+
                     self.targets = data.get("targets", [])
                     self.stats = data.get("stats", {"total_reacts": 0})
                 logs.info(
@@ -57,7 +65,8 @@ class CAIConfig:
             except Exception as e:
                 logs.error(f"[CAI] 加载配置失败: {e}")
                 self.enabled = False
-                self.emoji = "👎"
+                self.is_premium = False
+                self.emojis = ["👎"]
                 self.targets = []
                 self.stats = {"total_reacts": 0}
         else:
@@ -71,7 +80,8 @@ class CAIConfig:
                 json.dump(
                     {
                         "enabled": self.enabled,
-                        "emoji": self.emoji,
+                        "is_premium": self.is_premium,
+                        "emojis": self.emojis,
                         "targets": self.targets,
                         "stats": self.stats,
                     },
@@ -168,14 +178,77 @@ class CAIConfig:
         """获取统计信息"""
         output = "📊 **统计信息：**\n\n"
         output += f"功能状态: {'✅ 已启用' if self.enabled else '❌ 已禁用'}\n"
-        output += f"点踩表情: `{self.emoji}`\n"
+        output += f"会员状态: {'🌟 Premium' if self.is_premium else '👤 普通用户'}\n"
+
+        emoji_display = " ".join(self.emojis)
+        output += f"点踩表情: `{emoji_display}` ({len(self.emojis)}/{self.max_emojis()})\n"
         output += f"目标数量: `{len(self.targets)}`\n"
         output += f"累计点踩: `{self.stats['total_reacts']}` 次\n"
         return output
 
+    def max_emojis(self) -> int:
+        """获取可设置的最大表情数量"""
+        return 3 if self.is_premium else 1
+
+    def set_emojis(self, emojis: List[str]) -> str:
+        """设置表情列表"""
+        max_count = self.max_emojis()
+
+        if len(emojis) > max_count:
+            return f"❌ **表情数量超限！**\n\n当前为{'Premium' if self.is_premium else '普通'}用户，最多只能设置 {max_count} 个表情"
+
+        self.emojis = emojis
+        self.save()
+
+        emoji_display = " ".join(emojis)
+        return f"✅ **点踩表情已设置**\n\n当前表情: `{emoji_display}` ({len(emojis)}/{max_count})"
+
 
 # 全局配置实例
 config = CAIConfig()
+
+# Premium 状态检测标记
+_premium_checked = False
+
+
+async def check_premium_status(bot) -> bool:
+    """
+    检测 bot 主人是否为 Telegram Premium 会员
+
+    Args:
+        bot: Pyrogram client 实例
+
+    Returns:
+        是否为 Premium 用户
+    """
+    global _premium_checked
+
+    try:
+        me = await bot.get_me()
+        is_premium = getattr(me, "is_premium", False)
+
+        # 更新配置
+        if config.is_premium != is_premium:
+            config.is_premium = is_premium
+            config.save()
+
+        _premium_checked = True
+
+        status = "Premium 用户" if is_premium else "普通用户"
+        logs.info(f"[CAI] 账户类型: {status}，最多可设置 {config.max_emojis()} 个表情")
+
+        return is_premium
+
+    except Exception as e:
+        logs.error(f"[CAI] 检测 Premium 状态失败: {e}")
+        return False
+
+
+async def ensure_premium_checked(bot):
+    """确保已检测 Premium 状态"""
+    global _premium_checked
+    if not _premium_checked:
+        await check_premium_status(bot)
 
 
 def get_reaction(emoji: str) -> Union[str, list]:
@@ -201,6 +274,28 @@ def get_reaction(emoji: str) -> Union[str, list]:
         return [ReactionTypeEmoji(emoji=emoji)]
 
 
+def get_reactions(emojis: List[str]) -> list:
+    """
+    将表情列表转换为正确的反应类型列表
+
+    Args:
+        emojis: 表情列表
+
+    Returns:
+        反应类型列表
+    """
+    if not HAS_CUSTOM_EMOJI:
+        return emojis
+
+    reactions = []
+    for emoji in emojis:
+        if emoji.isdigit():
+            reactions.append(ReactionTypeCustomEmoji(custom_emoji_id=str(emoji)))
+        else:
+            reactions.append(ReactionTypeEmoji(emoji=emoji))
+    return reactions
+
+
 # ==================== 生命周期钩子 ====================
 
 
@@ -208,6 +303,7 @@ def get_reaction(emoji: str) -> Union[str, list]:
 async def cai_startup():
     """插件启动时执行"""
     logs.info("[CAI] 自动点踩插件已加载")
+    # 检测 Premium 状态将在首次调用命令时进行
 
 
 @Hook.on_shutdown()
@@ -227,6 +323,11 @@ async def cai_shutdown():
 )
 async def cai_command(message: Message):
     """处理 CAI 管理命令"""
+    # 确保 Premium 状态已检测
+    bot = getattr(message, "_client", None)
+    if bot:
+        await ensure_premium_checked(bot)
+
     # 获取命令参数
     text = message.arguments or ""
 
@@ -311,38 +412,44 @@ async def cai_command(message: Message):
     elif cmd == "emoji":
         params = text.split(maxsplit=1)
         if len(params) < 2:
+            # 确保 Premium 状态已检测
+            bot = getattr(message, "_client", None)
+            if bot:
+                await ensure_premium_checked(bot)
+
+            max_count = config.max_emojis()
             support_info = ""
             if HAS_CUSTOM_EMOJI:
                 support_info = "\n**支持自定义表情：** ✅ 是\n   使用 `,get_reactions` 获取自定义表情ID\n"
+
+            premium_note = ""
+            if config.is_premium:
+                premium_note = f"\n**Premium 用户最多可设置 {max_count} 个表情，用空格分隔**\n"
+
             await message.edit(
-                "❌ **参数错误！**\n\n"
-                "使用方法: `,cai emoji <表情>`\n\n"
-                "示例:\n"
-                " ` ,cai emoji 👎`  - 标准表情\n"
-                f" ` ,cai emoji 5352930934257484526`  - 自定义表情ID{support_info}\n"
-                "**提示：** 自定义表情ID是纯数字"
+                f"❌ **参数错误！**\n\n"
+                f"使用方法: `,cai emoji <表情>` {'或多个表情（空格分隔）' if config.is_premium else ''}\n\n"
+                f"示例:\n"
+                f" ` ,cai emoji 👎`  - 标准表情\n"
+                f" ` ,cai emoji 5352930934257484526`  - 自定义表情ID{support_info}"
+                f"{premium_note}"
+                f"**当前最多可设置: {max_count} 个表情**\n"
+                f"**提示：** 自定义表情ID是纯数字"
             )
             return
 
-        emoji = params[1].strip()
-        config.emoji = emoji
-        config.save()
+        # 解析表情列表
+        emoji_params = params[1].strip()
+        emojis = emoji_params.split()
 
-        # 判断表情类型
-        if emoji.isdigit():
-            emoji_type = "自定义表情ID"
-        else:
-            emoji_type = "标准表情"
+        # 确保 Premium 状态已检测
+        bot = getattr(message, "_client", None)
+        if bot:
+            await ensure_premium_checked(bot)
 
-        support_status = (
-            "✅ 支持自定义表情" if HAS_CUSTOM_EMOJI else "❌ 不支持自定义表情"
-        )
-        await message.edit(
-            f"✅ **点踩表情已设置**\n\n"
-            f"当前表情: `{emoji}`\n"
-            f"表情类型: {emoji_type}\n"
-            f"环境支持: {support_status}"
-        )
+        # 设置表情
+        result = config.set_emojis(emojis)
+        await message.edit(result)
 
     # 统计信息
     elif cmd == "stats":
@@ -356,7 +463,31 @@ async def show_help(message: Message):
     """显示帮助信息"""
     support_status = "✅ 支持自定义表情" if HAS_CUSTOM_EMOJI else "❌ 不支持自定义表情"
 
+    # 确保 Premium 状态已检测
+    bot = getattr(message, "_client", None)
+    if bot:
+        await ensure_premium_checked(bot)
+
+    max_emojis = config.max_emojis()
+    premium_status = "🌟 Premium 用户" if config.is_premium else "👤 普通用户"
+
+    # 根据 Premium 状态生成不同的表情说明
+    if config.is_premium:
+        emoji_examples = f"""**,cai emoji <表情1> [表情2] [表情3>]** - 设置点踩表情（最多{max_emojis}个）
+  • 单个标准表情: `,cai emoji 👎`
+  • 单个自定义表情ID: `,cai emoji 5352930934257484526`
+  • 多个表情（空格分隔）: `,cai emoji 👎 😆 🤔`
+  • 混合使用: `,cai emoji 👎 5352930934257484526 😆`
+  • 自定义表情ID是纯数字"""
+    else:
+        emoji_examples = f"""**,cai emoji <表情>** - 设置点踩表情（最多{max_emojis}个）
+  • 标准表情: `,cai emoji 👎`
+  • 自定义表情ID: `,cai emoji 5352930934257484526`
+  • 自定义表情ID是纯数字"""
+
     help_text = f"""**📖 自动点踩插件使用说明**
+
+**当前状态：** {premium_status}，最多可设置 {max_emojis} 个表情
 
 **管理命令：**
 
@@ -373,10 +504,7 @@ async def show_help(message: Message):
 
 **,cai list** - 查看所有目标配置
 
-**,cai emoji <表情>** - 设置点踩表情
-  • 标准表情: `,cai emoji 👎`
-  • 自定义表情ID: `,cai emoji 5352930934257484526`
-  • 自定义表情ID是纯数字
+{emoji_examples}
 
 **,cai stats** - 查看统计信息
 
@@ -386,7 +514,8 @@ async def show_help(message: Message):
 • 使用 `,get_reactions` 回复带表情的消息获取自定义表情ID
 • 使用 `,test_react <表情ID>` 测试发送表情反应
 • 频率限制建议至少 60 秒（1分钟）
-• 当前环境{support_status}"""
+• 当前环境{support_status}
+• Telegram Premium 用户可以同时添加多个反应"""
 
     await message.edit(help_text)
 
@@ -419,13 +548,16 @@ async def auto_react_handler(message: Message, bot):
         logs.info(f"[CAI] 用户 {message.from_user.id} 在冷却期内，跳过点踩")
         return
 
+    # 确保 Premium 状态已检测
+    await ensure_premium_checked(bot)
+
     # 执行点踩
     try:
-        # 获取正确的反应类型
-        reaction = get_reaction(config.emoji)
+        # 获取正确的反应类型列表
+        reactions = get_reactions(config.emojis)
 
         # 使用 Message.react() 方法
-        await message.react(reaction)
+        await message.react(reactions)
 
         # 更新最后点踩时间
         config.update_last_react(message.from_user.id, message.chat.id)
@@ -436,15 +568,18 @@ async def auto_react_handler(message: Message, bot):
             or message.from_user.first_name
             or str(message.from_user.id)
         )
+        emoji_display = " ".join(config.emojis)
         logs.info(
-            f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩"
+            f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩 [{emoji_display}]"
         )
 
     except AttributeError:
-        # 如果 react 方法不存在，尝试使用 send_reaction
+        # 如果 react 方法不存在，尝试使用 send_reaction（仅支持单个表情）
         try:
+            # 如果配置了多个表情，只使用第一个
+            emoji_to_use = config.emojis[0] if config.emojis else "👎"
             await bot.send_reaction(
-                chat_id=message.chat.id, message_id=message.id, emoji=config.emoji
+                chat_id=message.chat.id, message_id=message.id, emoji=emoji_to_use
             )
 
             # 更新最后点踩时间
@@ -456,7 +591,7 @@ async def auto_react_handler(message: Message, bot):
                 or str(message.from_user.id)
             )
             logs.info(
-                f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩"
+                f"[CAI] 已对用户 {user_name}({message.from_user.id}) 在群组 {message.chat.id} 进行点踩 [{emoji_to_use}]"
             )
 
         except Exception as e:

@@ -31,3 +31,6 @@ plugins/
 
 # VPS uploaded plugins directory (not needed in git)
 .vps_uploaded/
+
+# Local plugins in development (not ready for git)
+userinfo/
