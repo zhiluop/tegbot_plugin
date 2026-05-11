@@ -9,7 +9,8 @@ import contextlib
 import json
 import time
 from pathlib import Path
-from typing import Optional, Dict
+from urllib.parse import urlparse
+from typing import Any, Optional, Dict
 
 import httpx
 
@@ -29,6 +30,9 @@ DEFAULT_RATE_LIMIT = 3600
 
 # 默认模型
 DEFAULT_MODEL = "glm-4.6"
+
+# 默认生成长度。文案目标约 300 字，过大的 max_tokens 容易被兼容接口拒绝。
+DEFAULT_MAX_TOKENS = 1200
 
 # 系统提示词 - 仿明清艳情小说风格
 SYSTEM_PROMPT = """你是一位精通明清艳情小说的文学大师，擅长模仿《肉蒲团》《灯草和尚》《金云翘传》《品花鉴宝》《欢喜缘》等经典作品的文风。
@@ -54,6 +58,125 @@ SYSTEM_PROMPT = """你是一位精通明清艳情小说的文学大师，擅长�
 请记住：你的目标是创作真正露骨香艳的艳情文学，不是含蓄暗示的普通言情。"""
 
 
+def normalize_api_url(api_url: str) -> str:
+    """兼容 base_url、/v1 和完整 chat/completions 地址"""
+    raw_url = (api_url or "").strip()
+    if not raw_url:
+        return ""
+
+    normalized = raw_url.rstrip("/")
+    lowered = normalized.lower()
+    if lowered.endswith("/chat/completions"):
+        return normalized
+
+    parsed = urlparse(normalized)
+    path = parsed.path.rstrip("/")
+    if not path:
+        return f"{normalized}/v1/chat/completions"
+    if path.lower().endswith("/v1"):
+        return f"{normalized}/chat/completions"
+    return f"{normalized}/chat/completions"
+
+
+def mask_secret(secret: str) -> str:
+    """隐藏密钥，避免日志泄露"""
+    if not secret:
+        return "未设置"
+    if len(secret) <= 8:
+        return f"{secret[:2]}***"
+    return f"{secret[:6]}***{secret[-2:]}"
+
+
+def extract_text_from_content(content: Any) -> str:
+    """从 OpenAI 兼容接口的多种 content 结构里提取文本"""
+    if isinstance(content, str):
+        return content.strip()
+
+    if isinstance(content, list):
+        chunks = []
+        for item in content:
+            if isinstance(item, str) and item.strip():
+                chunks.append(item.strip())
+                continue
+            if not isinstance(item, dict):
+                continue
+
+            text_value = item.get("text")
+            if isinstance(text_value, dict):
+                text_value = text_value.get("value") or text_value.get("text")
+
+            if isinstance(text_value, str) and text_value.strip():
+                chunks.append(text_value.strip())
+                continue
+
+            if str(item.get("type", "")).lower() == "output_text":
+                fallback_text = item.get("value") or item.get("content")
+                if isinstance(fallback_text, str) and fallback_text.strip():
+                    chunks.append(fallback_text.strip())
+
+        return "\n".join(chunks).strip()
+
+    if isinstance(content, dict):
+        for key in ("text", "value", "content", "transcript", "refusal"):
+            value = content.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+    return ""
+
+
+def extract_ai_response_text(data: dict) -> str:
+    """从 OpenAI 兼容响应中提取回复文本"""
+    if not isinstance(data, dict):
+        return ""
+
+    choices = data.get("choices")
+    if isinstance(choices, list) and choices:
+        first_choice = choices[0] if isinstance(choices[0], dict) else {}
+
+        message = first_choice.get("message")
+        if isinstance(message, dict):
+            content = extract_text_from_content(message.get("content"))
+            if content:
+                return content
+
+            for key in (
+                "reasoning_content",
+                "reasoning",
+                "text",
+                "refusal",
+                "output_text",
+            ):
+                extracted = extract_text_from_content(message.get(key))
+                if extracted:
+                    return extracted
+
+        delta = first_choice.get("delta")
+        if isinstance(delta, dict):
+            for key in ("content", "reasoning_content", "text", "output_text"):
+                extracted = extract_text_from_content(delta.get(key))
+                if extracted:
+                    return extracted
+
+        extracted = extract_text_from_content(first_choice.get("text"))
+        if extracted:
+            return extracted
+
+    for key in ("output_text", "text", "content", "response"):
+        extracted = extract_text_from_content(data.get(key))
+        if extracted:
+            return extracted
+
+    return ""
+
+
+def is_generation_failure(text: Optional[str]) -> bool:
+    """判断生成结果是否是内部失败提示"""
+    if not text:
+        return True
+    return text.startswith(("生成失败", "生成超时", "响应解析失败"))
+
+
 @Hook.on_startup()
 async def plugin_startup():
     """插件初始化"""
@@ -70,7 +193,7 @@ class AIGenerator:
     """AI 文案生成器"""
 
     def __init__(self, api_url: str, api_key: str, model: str = DEFAULT_MODEL):
-        self.api_url = api_url.rstrip("/")
+        self.api_url = normalize_api_url(api_url)
         self.api_key = api_key
         self.model = model
 
@@ -96,7 +219,7 @@ class AIGenerator:
 
     async def _call_api(self, user_prompt: str) -> str:
         """调用 API 生成文案（带自动重试）"""
-        url = f"{self.api_url}/v1/chat/completions"
+        url = normalize_api_url(self.api_url)
 
         headers = {
             "Content-Type": "application/json",
@@ -110,7 +233,7 @@ class AIGenerator:
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.9,
-            "max_tokens": 25600,
+            "max_tokens": DEFAULT_MAX_TOKENS,
         }
 
         # 自动重试机制：最多重试1次
@@ -124,10 +247,9 @@ class AIGenerator:
                     response.raise_for_status()
 
                     data = response.json()
+                    content = extract_ai_response_text(data)
 
-                    if "choices" in data and len(data["choices"]) > 0:
-                        content = data["choices"][0]["message"]["content"]
-
+                    if content:
                         # 提取真正的文案内容（过滤掉思考过程）
                         extracted_content = self._extract_content(content)
 
@@ -137,9 +259,9 @@ class AIGenerator:
                             # 如果提取失败，返回原始内容
                             logs.warning("[JPMAI] 内容提取失败，返回原始内容")
                             return content.strip()
-                    else:
-                        logs.error(f"[JPMAI] API 返回无效响应: {data}")
-                        return "生成失败，请稍后再试"
+
+                    logs.error(f"[JPMAI] API 返回无有效文本: {data}")
+                    return "响应解析失败，请稍后再试"
 
             except httpx.TimeoutException as e:
                 last_error = e
@@ -148,13 +270,21 @@ class AIGenerator:
                 )
             except httpx.HTTPStatusError as e:
                 last_error = e
+                error_preview = ""
+                with contextlib.suppress(Exception):
+                    error_preview = e.response.text.strip()[:300]
                 logs.warning(
-                    f"[JPMAI] API 请求失败: {e.response.status_code} (尝试 {attempt + 1}/{max_retries + 1})"
+                    f"[JPMAI] API 请求失败: status={e.response.status_code} "
+                    f"url={url} model={self.model} max_tokens={DEFAULT_MAX_TOKENS} "
+                    f"body={error_preview or '无响应正文'} "
+                    f"(尝试 {attempt + 1}/{max_retries + 1})"
                 )
             except Exception as e:
                 last_error = e
                 logs.warning(
-                    f"[JPMAI] API 调用异常: {e} (尝试 {attempt + 1}/{max_retries + 1})"
+                    f"[JPMAI] API 调用异常: {type(e).__name__}: {repr(e)} "
+                    f"url={url} model={self.model} max_tokens={DEFAULT_MAX_TOKENS} "
+                    f"(尝试 {attempt + 1}/{max_retries + 1})"
                 )
 
         # 所有重试都失败后返回错误信息
@@ -306,12 +436,17 @@ class JPMAIConfigManager:
 
     def set_api(self, api_url: str, api_key: str, model: str = None) -> str:
         """设置 API 配置"""
-        self.api_url = api_url.rstrip("/")
+        self.api_url = normalize_api_url(api_url)
         self.api_key = api_key
         if model:
             self.model = model
         self.save()
-        return f"API 配置已更新\nURL: `{self.api_url}`\n模型: `{self.model}`"
+        return (
+            "API 配置已更新\n"
+            f"URL: `{self.api_url}`\n"
+            f"密钥: `{mask_secret(self.api_key)}`\n"
+            f"模型: `{self.model}`"
+        )
 
     def set_model(self, model: str) -> str:
         """单独设置模型"""
@@ -589,6 +724,7 @@ async def show_help(message: Message):
 
 **API 配置示例:**
 `,jpmai api http://example.com:8317 sk-xxxx glm-4.6`
+`,jpmai api https://api.example.com/v1/chat/completions sk-xxxx gpt-4o-mini`
 
 **切换模型示例:**
 `,jpmai model glm-4.6`
@@ -854,6 +990,9 @@ async def test_connectivity(message: Message):
     # 测试单人模式
     try:
         single_result = await generator.generate_single("测试用户")
+        if is_generation_failure(single_result):
+            await message.edit(f"❌ 单人模式测试失败\n错误: {single_result}")
+            return
 
         # 测试双人模式
         await message.edit(
@@ -861,6 +1000,9 @@ async def test_connectivity(message: Message):
         )
 
         dual_result = await generator.generate_dual("测试用户A", "测试用户B")
+        if is_generation_failure(dual_result):
+            await message.edit(f"❌ 双人模式测试失败\n错误: {dual_result}")
+            return
 
         # 显示测试结果
         test_result = f"""**✅ AI 生成连通性测试成功！**
@@ -1061,6 +1203,10 @@ async def trigger_jpmai(message: Message, bot: Client):
                 # 单人模式
                 logs.info(f"[JPMAI] `/{keyword}` 触发单人模式: {keyword}")
                 reply_text = await generator.generate_single(keyword)
+
+            if is_generation_failure(reply_text):
+                logs.error(f"[JPMAI] `/{keyword}` 生成失败: {reply_text}")
+                return
 
             await target_message.reply(reply_text)
 

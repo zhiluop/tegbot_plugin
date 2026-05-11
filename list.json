@@ -5,10 +5,10 @@
             "version": "1.0",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "68.613 kb",
+            "size": "80.086 kb",
             "supported": true,
-            "des_short": "AI 查询插件，支持 OpenAI 格式 API、自定义模型切换、MCP 工具接入，以及由模型决策是...",
-            "des": "AI 查询插件，支持 OpenAI 格式 API、自定义模型切换、MCP 工具接入，以及由模型决策是否联网搜索的增强问答。"
+            "des_short": "AI 查询插件，支持联网搜索增强、参考网址追加、实体查询图片预览、API URL/base url 快速切换与备用模型重试",
+            "des": "AI 查询插件，支持 OpenAI 格式 API、自定义模型切换、API URL/base url 快速切换、MCP 工具接入、由模型决策是否联网搜索、自动附参考网址、实体查询图片预览，以及当前模型失败时自动尝试备用模型。"
         },
         {
             "name": "cai",
@@ -75,10 +75,10 @@
             "version": "1.0",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "42.814 kb",
+            "size": "41.811 kb",
             "supported": true,
-            "des_short": "AI 生成艳情文案插件，支持完整 chat/completions URL 兼容、非标准响应文本提取和连通性测试...",
-            "des": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限制、锚点消息系统、自动重试机制、模型灵活切换、完整 chat/completions URL 兼容、非标准响应文本提取和连通性测试功能"
+            "des_short": "AI 生成艳情文案插件，支持完整 chat/completions URL 兼容、非标准响应文本提取和连通性测试",
+            "des": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限制、锚点消息系统、自动重试机制、模型灵活切换、完整 chat/completions URL 兼容、非标准响应文本提取和连通性测试功能。"
         },
         {
             "name": "luckydraw",
@@ -107,8 +107,8 @@
             "maintainer": "Vibe Coding",
             "size": "11.520 kb",
             "supported": true,
-            "des_short": "Pixiv 美少女推图插件，支持普通图与 R18 图推送，R18 自动添加 Telegram 遮罩，...",
-            "des": "Pixiv 美少女推图插件，支持普通图与 R18 图推送，R18 自动添加 Telegram 遮罩，可指定单次推送数量"
+            "des_short": "Pixiv 美少女推图插件，支持普通图与 R18 图推送，R18 自动添加 Telegram 遮罩，可指定单次推送数量",
+            "des": "Pixiv 美少女推图插件，支持普通图与 R18 图推送，R18 自动添加 Telegram 遮罩，可指定单次推送数量。"
         },
         {
             "name": "qunshui",
@@ -125,10 +125,10 @@
             "version": "1.51",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "38.477 kb",
+            "size": "76.909 kb",
             "supported": true,
-            "des_short": "# RedPack 发红包插件\n\n按固定样式发送口令红包，默认发送可复制的纯文字口令红包，也支持通过...",
-            "des": "# RedPack 发红包插件\n\n按固定样式发送口令红包，默认发送可复制的纯文字口令红包，也支持通过 `redpack img` 发送数学题 + 图片验证码口令红包。图片红包会在同一条图片消息里一次性给出全部数学题，需要发送“数学答案 + 图片口令”领取；如果命令里给了口令，图片口令会固定使用该口令，并优先使用插件内置中文字体资源渲染口令。红包领完后会自动发送结算榜单，支持折叠查看领取详情。"
+            "des_short": "口令红包插件，默认文字红包，支持 img 数学题图片口令、内置字体资源和自动结算榜单",
+            "des": "口令红包插件，默认发送可复制的文字红包，支持 `redpack img` 发送数学题 + 图片验证码口令红包；图片红包会在同一条图片消息里一次性给出全部数学题并自动识别答案口令随机发放红包，领完后自动发送结算榜单。"
         },
         {
             "name": "sar",
