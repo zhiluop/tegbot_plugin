@@ -1,14 +1,44 @@
 {
     "list": [
         {
+            "name": "ais",
+            "version": "1.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "68.613 kb",
+            "supported": true,
+            "des_short": "AI 查询插件，支持 OpenAI 格式 API、自定义模型切换、MCP 工具接入，以及由模型决策是...",
+            "des": "AI 查询插件，支持 OpenAI 格式 API、自定义模型切换、MCP 工具接入，以及由模型决策是否联网搜索的增强问答。"
+        },
+        {
             "name": "cai",
             "version": "1.0",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "14.494 kb",
+            "size": "19.371 kb",
             "supported": true,
-            "des_short": "自动点踩插件，支持多目标配置、冷却时间限制、标准表情和自定义表情",
-            "des": "自动点踩插件，支持多目标配置、冷却时间限制、标准表情和自定义表情"
+            "des_short": "# CAI - 自动点踩插件\n\n自动点踩插件，支持多目标配置、冷却时间限制、标准表情和自定义表情。支...",
+            "des": "# CAI - 自动点踩插件\n\n自动点踩插件，支持多目标配置、冷却时间限制、标准表情和自定义表情。支持 Telegram Premium 用户设置多个表情反应。\n\n## 功能特性\n\n- **自动点踩**：对指定群组中目标用户的发言自动添加表情反应\n- **多目标管理**：支持同时配置多个目标用户和群组\n- **冷却时间**：每个目标独立配置冷却间隔，避免频繁操作\n- **表情支持**：\n  - 标准表情（emoji）\n  - 自定义表情（通过 ID）\n- **Premium 支持**：\n  - 普通用户：最多设置 1 个表情\n  - Premium 用户：最多设置 3 个表情\n  - 自动检测账户类型，动态调整功能限制\n\n## 配置文件\n\n`cai_config.json` - 存储插件配置：\n\n```json\n{\n  \"enabled\": false,\n  \"is_premium\": false,\n  \"emojis\": [\"👎\"],\n  \"targets\": [],\n  \"stats\": {\n    \"total_reacts\": 0\n  }\n}\n```\n\n## 使用命令\n\n| 命令 | 说明 |\n|------|------|\n| `,cai on` | 开启自动点踩功能 |\n| `,cai off` | 关闭自动点踩功能 |\n| `,cai set <用户ID> <群组ID> <频率(秒)>` | 添加目标配置 |\n| `,cai remove <序号>` | 删除指定配置 |\n| `,cai list` | 查看所有目标配置 |\n| `,cai emoji <表情1> [表情2] [表情3]>` | 设置点踩表情（Premium 用户最多 3 个） |\n| `,cai stats` | 查看统计信息 |\n| `,cai help` | 查看帮助信息 |\n\n## 使用示例\n\n### 设置目标\n```\n,cai set 123456789 -1001234567890 3600\n```\n对用户 123456789 在群组 -1001234567890 的发言进行点踩，间隔 1 小时\n\n### 设置表情（普通用户）\n```\n,cai emoji 👎\n```\n\n### 设置表情（Premium 用户）\n```\n,cai emoji 👎 😆 🤔\n```\n\n### 查看配置\n```\n,cai list\n```\n\n## 技术实现\n\n- **配置管理**：CAIConfig 类负责配置的加载、保存和验证\n- **Premium 检测**：通过 `bot.get_me()` 获取账户的 `is_premium` 属性\n- **多表情支持**：使用 `get_reactions()` 函数将表情列表转换为正确的反应类型\n- **自动监听**：通过 `@listener` 装饰器监听所有消息，自动匹配目标并执行点踩\n\n## 注意事项\n\n- Premium 状态会在首次执行命令时自动检测并保存\n- 旧配置文件会自动兼容（单个 emoji 字段自动转换为 emojis 列表）\n- 自定义表情 ID 是纯数字，可通过 `,get_reactions` 命令获取\n- 建议频率限制至少 60 秒，避免频繁操作"
+        },
+        {
+            "name": "euth",
+            "version": "1.20",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "33.963 kb",
+            "supported": true,
+            "des_short": "# Euth Inline 助手插件\n\n自动调用多个 inline bot 的候选结果，支持共享 b...",
+            "des": "# Euth Inline 助手插件\n\n自动调用多个 inline bot 的候选结果，支持共享 bot 队列的定时签到、定时刷新每日老婆图片，以及手动测试和标题匹配配置。"
+        },
+        {
+            "name": "fudu",
+            "version": "1.10",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "22.706 kb",
+            "supported": true,
+            "des_short": "随机自动复读插件，支持群组独立开关、复读概率、冷却时间与每日目标控制，达标后当天自动停止复读，也支持...",
+            "des": "随机自动复读插件，支持群组独立开关、复读概率、冷却时间与每日目标控制，达标后当天自动停止复读，也支持手动标记今日达标。"
         },
         {
             "name": "get_reactions",
@@ -21,11 +51,21 @@
             "des": "表情获取辅助命令，用于测试环境是否支持自定义表情反应"
         },
         {
+            "name": "gi2",
+            "version": "1.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "33.419 kb",
+            "supported": true,
+            "des_short": "图片生成与改图插件，支持直接生图、回复图片改图、GI2 结果图原地继续编辑，并对高风险原图断流做诊断提示",
+            "des": "图片生成与改图插件，支持 `,gi2 <提示词>` 直接生图、回复照片/图片文档/静态贴纸改图，以及对 GI2 自己发出的结果图原地继续编辑；改图请求使用 curl 路径规避代理断流，并记录原图信息辅助判断上游风控/处理失败。"
+        },
+        {
             "name": "jpm",
             "version": "1.0",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "33.336 kb",
+            "size": "36.594 kb",
             "supported": true,
             "des_short": "关键词触发回复插件，支持多关键词、频率限制、锚点消息系统",
             "des": "关键词触发回复插件，支持多关键词、频率限制、锚点消息系统"
@@ -35,10 +75,80 @@
             "version": "1.0",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "33.626 kb",
+            "size": "42.814 kb",
             "supported": true,
-            "des_short": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限...",
-            "des": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限制、锚点消息系统、自动重试机制、模型灵活切换、连通性测试功能"
+            "des_short": "AI 生成艳情文案插件，支持完整 chat/completions URL 兼容、非标准响应文本提取和连通性测试...",
+            "des": "AI 生成艳情文案插件，调用 AI 模型实时生成仿明清艳情小说风格的回复，支持单人/双人模式、频率限制、锚点消息系统、自动重试机制、模型灵活切换、完整 chat/completions URL 兼容、非标准响应文本提取和连通性测试功能"
+        },
+        {
+            "name": "luckydraw",
+            "version": "1.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "75.680 kb",
+            "supported": true,
+            "des_short": "# 自动抽奖插件 (LuckyDraw)\n\n在指定群组中自动识别红包/抽奖活动并发送口令参与，支持机...",
+            "des": "# 自动抽奖插件 (LuckyDraw)\n\n在指定群组中自动识别红包/抽奖活动并发送口令参与，支持机器人白名单、群组独立延时与中奖庆祝贴纸。\n\n## 功能特点\n\n- 支持多种口令格式识别\n- 脚本检测规避（敏感词过滤）\n- 随机延迟发送（0.5-2秒）\n- 群组独立开关\n- 群组延时独立配置\n- 抽奖机器人白名单\n- 中奖后随机发送庆祝贴纸\n- 统计信息\n\n## 使用方法\n\n1. 在群组中使用 `,ldraw on` 启用功能\n2. 当白名单机器人发起红包/抽奖活动时，插件会自动识别并发送口令\n3. 如果提前配置了庆祝贴纸，检测到自己中奖后会自动延迟发送一个随机贴纸\n\n## 支持的口令格式\n\n- `领取密令: xxx`\n- `参与关键词：「xxx」`\n- `发送 xxx 进行领取`\n- `口令: xxx`\n\n## 管理命令\n\n- `,ldraw on` - 启用当前群组\n- `,ldraw off` - 禁用当前群组\n- `,ldraw set <群组ID>` - 手动添加群组\n- `,ldraw list` - 查看已启用群组\n- `,ldraw delayset <群组ID> <最小延时> [最大延时]` - 设置指定群组延时\n- `,ldraw delayoff <群组ID>` - 移除指定群组延时\n- `,ldraw bot list` - 查看抽奖机器人白名单\n- `,ldraw bot add <bot_id>` - 添加机器人到白名单\n- `,ldraw bot del <bot_id>` - 从白名单移除机器人\n- `,ldraw sticker list` - 查看庆祝贴纸列表\n- `,ldraw sticker add` - 回复贴纸添加到庆祝列表\n- `,ldraw sticker del <序号>` - 删除指定庆祝贴纸\n- `,ldraw sticker clear` - 清空庆祝贴纸\n- `,ldraw clear` - 清除已发送口令记录\n- `,ldraw stats` - 查看统计\n- `,ldraw test <文本>` - 测试口令提取"
+        },
+        {
+            "name": "minimaximg",
+            "version": "1.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "13.979 kb",
+            "supported": true,
+            "des_short": "MiniMax 生图插件，输入 `,mmimg <提示词>` 即可调用 MiniMax Image...",
+            "des": "MiniMax 生图插件，输入 `,mmimg <提示词>` 即可调用 MiniMax Image-01 生成图片，发送时会同时附带 Prompt、比例、尺寸和模型信息。"
+        },
+        {
+            "name": "pixivshow",
+            "version": "1.04",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "11.520 kb",
+            "supported": true,
+            "des_short": "Pixiv 美少女推图插件，支持普通图与 R18 图推送，R18 自动添加 Telegram 遮罩，...",
+            "des": "Pixiv 美少女推图插件，支持普通图与 R18 图推送，R18 自动添加 Telegram 遮罩，可指定单次推送数量"
+        },
+        {
+            "name": "qunshui",
+            "version": "1.10",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "57.417 kb",
+            "supported": true,
+            "des_short": "群水助手插件，支持指定群组的每日发言计数、目标进度查看、节奏建议、最近 10 条上下文 AI 群聊回...",
+            "des": "群水助手插件，支持指定群组的每日发言计数、目标进度查看、节奏建议、最近 10 条上下文 AI 群聊回复、可控自动接话、今日收工开关，以及高风险诱导消息拦截。"
+        },
+        {
+            "name": "redpack",
+            "version": "1.51",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "38.477 kb",
+            "supported": true,
+            "des_short": "# RedPack 发红包插件\n\n按固定样式发送口令红包，默认发送可复制的纯文字口令红包，也支持通过...",
+            "des": "# RedPack 发红包插件\n\n按固定样式发送口令红包，默认发送可复制的纯文字口令红包，也支持通过 `redpack img` 发送数学题 + 图片验证码口令红包。图片红包会在同一条图片消息里一次性给出全部数学题，需要发送“数学答案 + 图片口令”领取；如果命令里给了口令，图片口令会固定使用该口令，并优先使用插件内置中文字体资源渲染口令。红包领完后会自动发送结算榜单，支持折叠查看领取详情。"
+        },
+        {
+            "name": "sar",
+            "version": "1.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "9.283 kb",
+            "supported": true,
+            "des_short": "# SAR - 贴纸自动回复插件\n\n## 功能描述\n\n在指定群组中，当有人用贴纸回复你的消息时，自动...",
+            "des": "# SAR - 贴纸自动回复插件\n\n## 功能描述\n\n在指定群组中，当有人用贴纸回复你的消息时，自动回复相同的贴纸。\n\n## 使用方法\n\n### 管理命令\n\n- `,sar on` - 在当前群组启用功能\n- `,sar off` - 在当前群组禁用功能\n- `,sar set <群组ID>` - 启用指定群组的功能\n- `,sar list` - 查看所有启用的群组\n- `,sar stats` - 查看统计信息\n\n### 使用示例\n\n1. 在群组中启用功能：\n   ```\n   ,sar on\n   ```\n\n2. 启用指定群组：\n   ```\n   ,sar set -1001234567890\n   ```\n\n3. 查看已启用的群组：\n   ```\n   ,sar list\n   ```\n\n## 注意事项\n\n- 此功能只在群组中生效\n- 需要有人用贴纸**回复**你的消息才会触发\n- 会回复完全相同的贴纸"
+        },
+        {
+            "name": "sfl",
+            "version": "1.0",
+            "section": "chat",
+            "maintainer": "Vibe Coding",
+            "size": "9.360 kb",
+            "supported": true,
+            "des_short": "贴纸跟随插件，在特定群组中自动跟随发送特定贴纸",
+            "des": "贴纸跟随插件，在特定群组中自动跟随发送特定贴纸"
         },
         {
             "name": "share_plugins",
@@ -51,44 +161,14 @@
             "des": "分享插件，将现有插件以文件形式分享，支持列表查看和序号选择"
         },
         {
-            "name": "ais",
+            "name": "userinfo",
             "version": "1.0",
             "section": "chat",
             "maintainer": "Vibe Coding",
-            "size": "9.0 kb",
+            "size": "20.664 kb",
             "supported": true,
-            "des_short": "AI查询插件，使用,ais命令向AI模型提问并返回回复，支持自定义API配置",
-            "des": "AI查询插件，使用,ais命令向AI模型提问并返回回复，支持自定义API配置、OpenAI格式API、错误处理和超时控制"
-        },
-        {
-            "name": "stfollow",
-            "version": "1.0",
-            "section": "chat",
-            "maintainer": "Vibe Coding",
-            "size": "8.9 kb",
-            "supported": true,
-            "des_short": "贴纸跟随插件，在特定群组中自动跟随发送特定贴纸",
-            "des": "贴纸跟随插件，在特定群组中当有人发送特定贴纸时自动跟随发送同一个贴纸"
-        },
-        {
-            "name": "sar",
-            "version": "1.0",
-            "section": "chat",
-            "maintainer": "Vibe Coding",
-            "size": "9.5 kb",
-            "supported": true,
-            "des_short": "贴纸自动回复插件，当有人用贴纸回复你的消息时，自动回复相同的贴纸",
-            "des": "贴纸自动回复插件，在指定群组中当有人用贴纸回复你的消息时，自动回复相同的贴纸"
-        },
-        {
-            "name": "luckydraw",
-            "version": "1.0",
-            "section": "chat",
-            "maintainer": "Vibe Coding",
-            "size": "10.5 kb",
-            "supported": true,
-            "des_short": "自动抽奖插件，在指定群组中自动识别红包/抽奖活动并发送口令参与",
-            "des": "自动抽奖插件，在指定群组中自动识别红包/抽奖活动并发送口令参与，支持多种口令格式、脚本检测规避、随机延迟发送"
+            "des_short": "暂无描述",
+            "des": "暂无描述"
         }
     ]
 }
