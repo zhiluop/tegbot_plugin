@@ -146,6 +146,27 @@ def build_auto_sender_name(user: Any) -> str:
     return "你"
 
 
+def build_effective_sender_name(message: Message, user: Any) -> str:
+    """根据本次发言身份构建展示名称，优先使用频道/皮套身份"""
+    sender_chat = getattr(message, "sender_chat", None)
+    if sender_chat is not None:
+        title = str(getattr(sender_chat, "title", "") or "").strip()
+        username = str(getattr(sender_chat, "username", "") or "").strip()
+        chat_id = getattr(sender_chat, "id", None)
+
+        if title:
+            return title
+        if username:
+            return f"@{username}"
+        if chat_id is not None:
+            return str(chat_id)
+
+    from_user = getattr(message, "from_user", None)
+    if from_user is not None:
+        return build_auto_sender_name(from_user)
+    return build_auto_sender_name(user)
+
+
 def generate_redpack_id(length: int = REDPACK_ID_LENGTH) -> str:
     """生成红包 ID"""
     chars = string.ascii_uppercase + string.digits
@@ -1953,7 +1974,7 @@ async def redpack_command(message: Message, bot: Client) -> None:
     """处理发红包命令"""
     me = await bot.get_me()
     config.set_self_user_id(me.id)
-    auto_name = build_auto_sender_name(me)
+    auto_name = build_effective_sender_name(message, me)
     sender_name = config.custom_name or auto_name
 
     raw_args = (message.arguments or "").strip()
